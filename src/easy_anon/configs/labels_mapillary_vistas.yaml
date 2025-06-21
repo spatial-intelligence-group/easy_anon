@@ -1,0 +1,31 @@
+# Labels for Mask2Former models trained on Mapillary Vistas
+# - all the labels can be found at https://github.com/facebookresearch/Mask2Former/blob/main/mask2former/data/datasets/register_mapillary_vistas.py
+---
+animal:
+- 0 # Bird
+- 1 # Ground animal
+person:
+- 19 # Person
+- 20 # Bicyclist
+- 21 # Motorcyclist
+- 22 # Other rider
+sky:
+- 27 # Sky
+snow:
+- 28 # Snow
+vegetation:
+- 30 # Vegetation
+vehicle:
+- 52 # Bicycle
+- 53 # Boat
+- 54 # Bus
+- 55 # Car
+- 56 # Caravan
+- 57 # Motorcycle
+- 58 # On rails
+- 59 # Other vehicle
+- 60 # Trailer
+- 61 # Truck
+- 62 # Wheeled slow
+water:
+- 31 # Water

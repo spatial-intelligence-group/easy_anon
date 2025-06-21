@@ -1,0 +1,48 @@
+ADE20k:
+  ResNet50:
+    config: "ade20k/semantic-segmentation/maskformer2_R50_bs16_160k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/ade20k/semantic/maskformer2_R50_bs16_160k/model_final_500878.pkl"
+  ResNet101:
+    config: "ade20k/semantic-segmentation/maskformer2_R101_bs16_90k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/ade20k/semantic/maskformer2_R101_bs16_90k/model_final_0d68be.pkl"
+  Swin-T:
+    config: "ade20k/semantic-segmentation/swin/maskformer2_swin_tiny_bs16_160k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/ade20k/semantic/maskformer2_swin_tiny_bs16_160k/model_final_5274a6.pkl"
+  Swin-S:
+    config: "ade20k/semantic-segmentation/swin/maskformer2_swin_small_bs16_160k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/ade20k/semantic/maskformer2_swin_small_bs16_160k/model_final_011c6d.pkl"
+  Swin-B:
+    config: "ade20k/semantic-segmentation/swin/maskformer2_swin_base_384_bs16_160k_res640.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/ade20k/semantic/maskformer2_swin_base_384_bs16_160k_res640/model_final_503e96.pkl"
+  Swin-B-IN21k:
+    config: "ade20k/semantic-segmentation/swin/maskformer2_swin_base_IN21k_384_bs16_160k_res640.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/ade20k/semantic/maskformer2_swin_base_IN21k_384_bs16_160k_res640/model_final_7e47bf.pkl"
+  Swin-L-IN21k:
+    config: "ade20k/semantic-segmentation/swin/maskformer2_swin_large_IN21k_384_bs16_160k_res640.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/ade20k/semantic/maskformer2_swin_large_IN21k_384_bs16_160k_res640/model_final_6b4a3a.pkl"
+Cityscapes:
+  ResNet50:
+    config: "cityscapes/semantic-segmentation/maskformer2_R50_bs16_90k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/cityscapes/semantic/maskformer2_R50_bs16_90k/model_final_cc1b1f.pkl"
+  ResNet101:
+    config: "cityscapes/semantic-segmentation/maskformer2_R101_bs16_90k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/cityscapes/semantic/maskformer2_R101_bs16_90k/model_final_257ce8.pkl"
+  Swin-T:
+    config: "cityscapes/semantic-segmentation/swin/maskformer2_swin_tiny_bs16_90k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/cityscapes/semantic/maskformer2_swin_tiny_bs16_90k/model_final_2d58d4.pkl"
+  Swin-S:
+    config: "cityscapes/semantic-segmentation/swin/maskformer2_swin_small_bs16_90k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/cityscapes/semantic/maskformer2_swin_small_bs16_90k/model_final_fa26ae.pkl"
+  Swin-B-IN21k:
+    config: "cityscapes/semantic-segmentation/swin/maskformer2_swin_base_IN21k_384_bs16_90k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/cityscapes/semantic/maskformer2_swin_base_IN21k_384_bs16_90k/model_final_1c6b65.pkl"
+  Swin-L-IN21k:
+    config: "cityscapes/semantic-segmentation/swin/maskformer2_swin_large_IN21k_384_bs16_90k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/cityscapes/semantic/maskformer2_swin_large_IN21k_384_bs16_90k/model_final_17c1ee.pkl"
+MapillaryVistas:
+  ResNet50:
+    config: "mapillary-vistas/semantic-segmentation/maskformer2_R50_bs16_300k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/mapillary_vistas/semantic/maskformer_R50_bs16_300k/model_final_6c66d0.pkl"
+  Swin-L-IN21k:
+    config: "mapillary-vistas/semantic-segmentation/swin/maskformer2_swin_large_IN21k_384_bs16_300k.yaml"
+    model_url: "https://dl.fbaipublicfiles.com/maskformer/mask2former/mapillary_vistas/semantic/maskformer2_swin_large_IN21k_384_bs16_300k/model_final_90ee2d.pkl"

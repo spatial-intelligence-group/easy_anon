@@ -1,0 +1,21 @@
+# Labels for Mask2Former models trained on Cityscapes dataset
+# - all the labels can be found at https://github.com/facebookresearch/detectron2/blob/3a161f234e12a56eb9f31fbdbd1972cc2280bed7/detectron2/data/datasets/builtin_meta.py#L205
+# - use the "trainId" values
+---
+animal: []
+person:
+- 11 # Person
+- 12 # Rider
+sky:
+- 10 # Sky
+snow: []
+vegetation:
+- 8 # Vegetation
+vehicle:
+- 13 # Car
+- 14 # Truck
+- 15 # Bus
+- 16 # Train
+- 17 # Motorcycle
+- 18 # Bicycle
+water: []

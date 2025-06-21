@@ -1,0 +1,30 @@
+# Labels for Mask2Former models trained on ADE20K dataset
+# - all the labels can be found at https://github.com/facebookresearch/Mask2Former/blob/main/mask2former/data/datasets/register_ade20k_panoptic.py
+---
+animal:
+- 126 # Animal
+person:
+- 12 # Person
+sky:
+- 2 # Sky
+snow: []
+vegetation:
+- 4 # Tree
+- 17 # Plant
+- 66 # Flower
+- 72 # Palm tree
+vehicle:
+- 20 # Car
+- 76 # Boat
+- 80 # Bus
+- 83 # Truck
+- 90 # Plane
+- 102 # Van
+- 103 # Ship
+- 116 # Motorbike
+- 127 # Bicycle
+water:
+- 21 # Water
+- 60 # River
+- 113 # Falls
+- 128 # Lake
