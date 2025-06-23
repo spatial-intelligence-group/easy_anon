@@ -1,5 +1,6 @@
 """Utilities for the easy-anon package."""
 
+import os
 import importlib.resources
 from appdirs import user_cache_dir
 import yaml
@@ -11,6 +12,7 @@ except ImportError:
 
 
 IMG_EXTS = [".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"]
+MASK_EXTS = [".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif", ".npy", ".npz"]
 MODELS_FILE = "configs/models.yaml"
 
 
@@ -19,6 +21,7 @@ def load_model_list():
 
     Args:
         None
+
     Returns:
         dict: A dictionary with model names as keys and their configurations as values. The configuration includes
         the relative path to model config file (in Mask2Former configs directory) and the model weights URL.
@@ -38,3 +41,27 @@ LABELS_FILES = {
 }
 
 DEFAULT_CACHE_DIR = user_cache_dir("easy-anon")
+
+
+def check_img_ext(filename):
+    """Check if the file has a valid image extension.
+
+    Args:
+        filename (str): The name or path of the file to check.
+
+    Returns:
+        bool: True if the file has a valid image extension, False otherwise.
+    """
+    return os.path.splitext(filename)[1].lower() in IMG_EXTS
+
+
+def check_mask_ext(filename):
+    """Check if the file has a valid mask extension.
+
+    Args:
+        filename (str): The name or path of the file to check.
+
+    Returns:
+        bool: True if the file has a valid mask extension, False otherwise.
+    """
+    return os.path.splitext(filename)[1].lower() in MASK_EXTS
