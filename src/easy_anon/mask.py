@@ -7,7 +7,6 @@ import argparse
 import os
 import importlib.resources
 import numpy as np
-import cv2
 from rich.progress import track
 from rich.console import Console
 import yaml
@@ -27,7 +26,16 @@ from mask2former.config import add_maskformer2_config
 # Registers the MaskFormer model with Detectron at import time - has to be imported even if not used
 from mask2former import maskformer_model  # noqa: F401
 
-from easy_anon.utils import IMG_EXTS, MODELS, LABELS_CHOICES, LABELS_FILES, DEFAULT_CACHE_DIR
+from easy_anon.utils import (
+    MODELS,
+    IMG_EXTS,
+    LABELS_CHOICES,
+    LABELS_FILES,
+    DEFAULT_CACHE_DIR,
+    check_img_ext,
+    load_mask,
+    save_mask,
+)
 
 
 def main():
@@ -37,15 +45,13 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--input",
+        "input_image",
         type=str,
-        required=True,
         help="Path to the input image / image directory",
     )
     parser.add_argument(
-        "--output",
+        "output",
         type=str,
-        required=True,
         help="Path to the output binary mask / directory for masks",
     )
     parser.add_argument(
@@ -60,7 +66,7 @@ def main():
         "--model",
         type=str,
         nargs="+",
-        default=["MapillaryVistas-ResNet50", "MapillaryVistas-Swin-L-IN21k"],
+        default=["ADE20k-ResNet101", "ADE20k-Swin-L-IN21k"],
         choices=MODELS.keys(),
         help="Mask2Former model / a list of models to use",
     )
@@ -77,6 +83,14 @@ def main():
         help="Color mode for the generated masks. "
         "If 'black_on_white', the mask will be black on a white background. "
         "If 'white_on_black', the mask will be white on a black background.",
+    )
+    parser.add_argument(
+        "--mask_postfix",
+        type=str,
+        default=".png",
+        help="Postfix for the generated mask files. "
+        "If the output is a directory, the mask files will be saved with this postfix."
+        "Can be used to set a specific output image format by adding an extension to the postfix. ",
     )
     parser.add_argument(
         "--mask_merge_mode",
@@ -103,18 +117,48 @@ def main():
         help="Path of the directory where the checkpoint files are cached",
     )
     args = parser.parse_args()
-
-    if os.path.isfile(args.input):
-        input_image_list = [args.input]
-    elif os.path.isdir(args.input):
-        input_image_list = [
-            os.path.join(args.input, f) for f in os.listdir(args.input) if os.path.splitext(f)[1].lower() in IMG_EXTS
-        ]
-    else:
-        raise ValueError(f"The given input path does not exist: {args.input}")
-
     console = Console()
+
+    img_is_file = os.path.isfile(args.input_image)
+    img_is_dir = os.path.isdir(args.input_image)
+    out_is_dir = os.path.isdir(args.output)
+
+    if img_is_file:
+        input_image_list = [args.input_image]
+    elif img_is_dir:
+        input_image_list = [os.path.join(args.input_image, f) for f in os.listdir(args.input_image) if check_img_ext(f)]
+    else:
+        raise ValueError(f"The given input path does not exist: {args.input_image}")
+
+    if not input_image_list:
+        raise ValueError(
+            f"The given input image directory does not contain any valid image files: {args.input_image} "
+            f"Supported image extensions are: {', '.join(IMG_EXTS)}"
+        )
+
+    if img_is_dir and not out_is_dir:
+        raise ValueError(
+            f"The output path must be a directory when the input image is a directory. Given output path: {args.output}"
+        )
+
+    if not out_is_dir:
+        output_mask_list = [args.output]
+    else:
+        output_mask_list = []
+        for f in input_image_list:
+            img_base = os.path.splitext(os.path.basename(f))[0]
+            mask_ext = (
+                args.mask_postfix
+                if args.mask_postfix and args.mask_postfix[0] == "."
+                else os.path.splitext(args.mask_postfix)[1]
+            )
+            if mask_ext:
+                output_mask_list.append(os.path.join(args.output, img_base + args.mask_postfix))
+            else:
+                output_mask_list.append(os.path.join(args.output, img_base + args.mask_postfix + ".png"))
+
     init_run = True
+    init_warn = True
 
     for model in args.model:
         config_file = MODELS[model]["config"]
@@ -141,53 +185,52 @@ def main():
             label_category_ids = labels_all[label_category]
             if not label_category_ids:
                 console.print(
-                    f":warning: The model '{model}' does not support the label category '{label_category}'."
+                    f"Warning :warning: : The model '{model}' does not support the label category '{label_category}'."
                     f"Check the available label categories in {labels_path}.",
                     style="yellow",
                 )
             else:
                 labels.extend(label_category_ids)
 
-        for input_image_path in track(input_image_list, description=f"Generating masks with {model}..."):
+        for idx in track(range(len(input_image_list)), description=f"Generating masks with {model}..."):
+            input_image_path = input_image_list[idx]
+            merged_mask_path = output_mask_list[idx]
             img = read_image(input_image_path, format="BGR")
             predictions = predictor(img)
-            mask_img = create_mask(predictions, labels, args.mask_color_mode)
+            mask_img = create_mask(predictions, labels)
 
             os.makedirs(os.path.dirname(args.output), exist_ok=True)
 
+            if init_warn and os.path.splitext(merged_mask_path)[1].lower() in [".jpg", ".jpeg"]:
+                console.print(
+                    "\nWarning :warning: : Masks are being saved in JPEG format, which may cause compression artifacts. ",
+                    style="yellow",
+                )
+                init_warn = False
+
             # Save the masks generated by each model separately
             if args.save_model_masks:
-                mask_output_path = os.path.join(
-                    args.output, os.path.splitext(os.path.basename(input_image_path))[0] + "_" + model + ".png"
-                )
-                cv2.imwrite(mask_output_path, mask_img)
+                mask_base, mask_ext = os.path.splitext(merged_mask_path)
+                mask_output_path = mask_base + "_" + model + mask_ext
+                save_mask(mask_img, mask_output_path, mode=args.mask_color_mode)
 
             # Save the masks merged from all models
-            merged_mask_path = os.path.join(
-                args.output, os.path.splitext(os.path.basename(input_image_path))[0] + ".png"
-            )
-
-            # Handle existing masks based on the value of --existing_mask_mode
             if init_run and os.path.isfile(merged_mask_path) and args.existing_mask_mode == "overwrite":
+                # Handle existing masks based on the value of --existing_mask_mode
                 os.remove(merged_mask_path)
 
             if os.path.isfile(merged_mask_path):
-                merged_mask = cv2.imread(merged_mask_path, cv2.IMREAD_UNCHANGED)
+                merged_mask = load_mask(merged_mask_path, mode=args.mask_color_mode)
                 if merged_mask.shape[:2] != mask_img.shape[:2]:
                     raise ValueError(f"Mask shape mismatch: {merged_mask.shape} vs {mask_img.shape}")
 
-                # Use "XNOR" logical operation to find the correct operation for mask merging
-                # - union + white_on_black = OR
-                # - union + black_on_white = AND
-                # - intersection + white_on_black = AND
-                # - intersection + black_on_white = OR
-                if (args.mask_merge_mode == "union") == (args.mask_color_mode == "black_on_white"):
-                    merged_mask = cv2.bitwise_and(merged_mask, mask_img)
-                else:
-                    merged_mask = cv2.bitwise_or(merged_mask, mask_img)
+                if args.mask_merge_mode == "union":
+                    merged_mask = np.logical_or(merged_mask, mask_img)
+                elif args.mask_merge_mode == "intersection":
+                    merged_mask = np.logical_and(merged_mask, mask_img)
             else:
                 merged_mask = mask_img
-            cv2.imwrite(merged_mask_path, merged_mask)
+            save_mask(merged_mask, merged_mask_path, mode=args.mask_color_mode)
 
         init_run = False
 
@@ -264,25 +307,21 @@ def setup_cfg(input_config):
     return cfg
 
 
-def create_mask(predictions, labels, color_mode="black_on_white"):
+def create_mask(predictions, labels):
     """Create a binary mask image from the raw Mask2Former predictions.
 
     Args:
         predictions (dict): The raw predictions from the Mask2Former model, containing semantic segmentation results.
         labels (list): A list of label IDs to include in the mask.
-        color_mode (str): The color mode for the mask image. Can be "black_on_white" or "white_on_black".
 
     Returns:
-        np.ndarray: A binary mask image.
+        np.ndarray: A binary mask array.
     """
     assert "sem_seg" in predictions, "The predictions must contain 'sem_seg' key with semantic segmentation results."
 
     segmentation = predictions["sem_seg"].argmax(dim=0).to("cpu").numpy()
     mask_bool = np.isin(segmentation, labels).reshape(segmentation.shape)
-    if color_mode == "black_on_white":
-        mask_bool = np.logical_not(mask_bool)
-    mask_img = mask_bool.astype(np.uint8) * 255
-    return mask_img
+    return mask_bool
 
 
 def download_checkpoint(url: str, dest: str):

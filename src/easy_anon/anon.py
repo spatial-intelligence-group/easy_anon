@@ -10,7 +10,7 @@ import cv2
 from rich.progress import track
 from rich.console import Console
 
-from easy_anon.utils import check_img_ext, check_mask_ext, IMG_EXTS, MASK_EXTS
+from easy_anon.utils import check_img_ext, check_mask_ext, load_mask, IMG_EXTS, MASK_EXTS
 
 
 def main():
@@ -20,23 +20,20 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--input_image",
+        "input_image",
         type=str,
-        required=True,
         help="Path to the input image / image directory",
     )
     parser.add_argument(
-        "--input_mask",
+        "input_mask",
         type=str,
-        required=True,
         help="Path to the input mask / mask directory."
         "If the input is a directory, the masks are associated to the images based on their basenames."
         "The basenames are compared without file extensions and with 'mask_postfix' removed from the mask basename.",
     )
     parser.add_argument(
-        "--output",
+        "output",
         type=str,
-        required=True,
         help="Path to the output anonymized image / directory for anonymized images",
     )
     parser.add_argument(
@@ -109,6 +106,7 @@ def main():
     mask_is_file = os.path.isfile(args.input_mask)
     img_is_dir = os.path.isdir(args.input_image)
     mask_is_dir = os.path.isdir(args.input_mask)
+    out_is_dir = os.path.isdir(args.output)
 
     if not (img_is_file or img_is_dir):
         raise ValueError(f"The given input image path does not exist: {args.input_image}")
@@ -145,43 +143,78 @@ def main():
                 f"Supported mask extensions are: {', '.join(MASK_EXTS)}"
             )
 
-    input_image_basenames = [os.path.splitext(os.path.basename(f))[0] for f in input_image_list]
-    input_mask_basenames = [
-        os.path.splitext(os.path.basename(f))[0].removesuffix(args.mask_postfix) for f in input_mask_list
-    ]
-
-    unpaired_images = [
-        os.path.basename(input_image_list[idx])
-        for idx in range(len(input_image_basenames))
-        if input_image_basenames[idx] not in input_mask_basenames
-    ]
-    unpaired_masks = [
-        os.path.basename(input_mask_list[idx])
-        for idx in range(len(input_mask_basenames))
-        if input_mask_basenames[idx] not in input_image_basenames
-    ]
-    paired_basenames = [img for img in input_image_basenames if img in input_mask_basenames]
-
-    if unpaired_images:
-        console.print(
-            "Warning :warning: : The following input images do not have corresponding masks: \n- "
-            + "\n- ".join(unpaired_images),
-            style="yellow",
-        )
-    if unpaired_masks:
-        console.print(
-            "Warning :warning: : The following input masks do not have corresponding images: \n- "
-            + "\n- ".join(unpaired_masks),
-            style="yellow",
+    if img_is_dir and not out_is_dir:
+        raise ValueError(
+            f"The output path must be a directory when the input image is a directory. Given output path: {args.output}"
         )
 
-    console.print(f"Found {len(paired_basenames)} image-mask pairs for anonymization")
-    for file_basename in track(paired_basenames, description="Anonymizing..."):
-        img_idx = input_image_basenames.index(file_basename)
-        mask_idx = input_mask_basenames.index(file_basename)
+    if not out_is_dir:
+        output_list = [args.output]
+    else:
+        output_list = []
+        for f in input_image_list:
+            img_base, img_ext = os.path.splitext(os.path.basename(f))
+            anon_ext = (
+                args.anon_postfix
+                if args.anon_postfix and args.anon_postfix[0] == "."
+                else os.path.splitext(args.anon_postfix)[1]
+            )
+            if anon_ext:
+                output_list.append(os.path.join(args.output, img_base + args.anon_postfix))
+            else:
+                output_list.append(os.path.join(args.output, img_base + args.anon_postfix + img_ext))
 
-        img_path = input_image_list[img_idx]
-        mask_path = input_mask_list[mask_idx]
+    if img_is_dir or mask_is_dir:
+        input_image_basenames = [os.path.splitext(os.path.basename(f))[0] for f in input_image_list]
+        input_mask_basenames = [
+            os.path.splitext(os.path.basename(f))[0].removesuffix(args.mask_postfix) for f in input_mask_list
+        ]
+
+        unpaired_images = [
+            os.path.basename(input_image_list[idx])
+            for idx in range(len(input_image_basenames))
+            if input_image_basenames[idx] not in input_mask_basenames
+        ]
+        unpaired_masks = [
+            os.path.basename(input_mask_list[idx])
+            for idx in range(len(input_mask_basenames))
+            if input_mask_basenames[idx] not in input_image_basenames
+        ]
+        paired_basenames = [img for img in input_image_basenames if img in input_mask_basenames]
+
+        input_image_list_tmp = []
+        input_mask_list_tmp = []
+        output_list_tmp = []
+        for file_basename in paired_basenames:
+            img_idx = input_image_basenames.index(file_basename)
+            mask_idx = input_mask_basenames.index(file_basename)
+
+            input_image_list_tmp.append(input_image_list[img_idx])
+            input_mask_list_tmp.append(input_mask_list[mask_idx])
+            output_list_tmp.append(output_list[img_idx])
+
+        input_image_list = input_image_list_tmp
+        input_mask_list = input_mask_list_tmp
+        output_list = output_list_tmp
+
+        if unpaired_images:
+            console.print(
+                "Warning :warning: : The following input images do not have corresponding masks: \n- "
+                + "\n- ".join(unpaired_images),
+                style="yellow",
+            )
+        if unpaired_masks:
+            console.print(
+                "Warning :warning: : The following input masks do not have corresponding images: \n- "
+                + "\n- ".join(unpaired_masks),
+                style="yellow",
+            )
+
+    console.print(f"Found {len(input_image_list)} image-mask pairs for anonymization")
+    for idx in track(range(len(input_image_list)), description="Anonymizing..."):
+        img_path = input_image_list[idx]
+        mask_path = input_mask_list[idx]
+        output_path = output_list[idx]
 
         img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
 
@@ -204,57 +237,11 @@ def main():
         )
 
         # Save the anonymized image
-        output_filename = os.path.basename(img_path)
-        if args.anon_postfix:
-            output_filename = os.path.splitext(output_filename)[0] + args.anon_postfix
-            if not os.path.splitext(args.anon_postfix)[1]:
-                output_filename += os.path.splitext(img_path)[1]
-        output_path = os.path.join(args.output, output_filename)
-
         img_anon = cv2.cvtColor(img_anon, cv2.COLOR_RGB2BGR)
         cv2.imwrite(output_path, img_anon)
 
 
-def load_mask(mask_path, mode="black_on_white"):
-    """Load the mask and convert it to the desired color mode.
-
-    Args:
-        mask_path (str): Path to the mask file.
-        mode (str): Color mode of the mask. Options are:
-            - "black_on_white": Black regions will be anonymized.
-            - "white_on_black": White regions will be anonymized.
-
-    Returns:
-        np.ndarray: The binary mask where the regions to be anonymized are set to True.
-    """
-    if os.path.splitext(mask_path)[1].lower() == ".npy":
-        mask = np.load(mask_path)
-        if mask.ndim == 3:
-            mask = cv2.cvtColor(mask, cv2.COLOR_RGB2GRAY)
-    elif os.path.splitext(mask_path)[1].lower() == ".npz":
-        mask = np.load(mask_path)["mask"]
-        if mask.ndim == 3:
-            mask = cv2.cvtColor(mask, cv2.COLOR_RGB2GRAY)
-    else:
-        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-
-    if mask is None:
-        raise ValueError(f"Could not read the mask file: {mask_path}")
-
-    if mask.dtype == np.uint8:
-        mask = mask.astype(np.float32)
-        mask = mask / 255.0
-
-    # 0 and 1 should be safe for direct comparison
-    if mode == "black_on_white":
-        mask = mask == 0
-    elif mode == "white_on_black":
-        mask = mask == 1
-
-    return mask
-
-
-def anonymize_image(img, mask, mode="average_color", single_color=[0, 0, 0], size_param=None):
+def anonymize_image(img, mask, mode="average_border", single_color=[0, 0, 0], size_param=None):
     """Anonymize the image in the regions defined by the mask.
 
     Args:
@@ -278,7 +265,7 @@ def anonymize_image(img, mask, mode="average_color", single_color=[0, 0, 0], siz
 
     if mode == "average_inside":
         img_anon = anonymize_average_inside(img, mask)
-    if mode == "average_border":
+    elif mode == "average_border":
         img_anon = anonymize_average_border(img, mask)
     elif mode == "single_color":
         img_anon = anonymize_single_color(img, mask, single_color)
@@ -401,6 +388,9 @@ def anonymize_inpaint(img, mask, neighborhood_radius=20):
     Returns:
         np.ndarray: The anonymized image with the inpainted regions.
     """
+    if neighborhood_radius is None:
+        neighborhood_radius = 20
+
     mask_uint8 = (mask * 255).astype(np.uint8)
     img_anon = cv2.inpaint(img, mask_uint8, inpaintRadius=neighborhood_radius, flags=cv2.INPAINT_TELEA)
 

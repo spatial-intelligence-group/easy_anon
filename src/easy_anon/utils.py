@@ -4,6 +4,8 @@ import os
 import importlib.resources
 from appdirs import user_cache_dir
 import yaml
+import numpy as np
+import cv2
 
 try:
     from yaml import CLoader as Loader
@@ -65,3 +67,62 @@ def check_mask_ext(filename):
         bool: True if the file has a valid mask extension, False otherwise.
     """
     return os.path.splitext(filename)[1].lower() in MASK_EXTS
+
+
+def load_mask(mask_path, mode="black_on_white"):
+    """Load the mask and convert it to the desired color mode.
+
+    Args:
+        mask_path (str): Path to the mask file.
+        mode (str): Color mode of the mask. Options are:
+            - "black_on_white": Black regions will be anonymized.
+            - "white_on_black": White regions will be anonymized.
+
+    Returns:
+        np.ndarray: The binary mask where the regions to be anonymized are set to True.
+    """
+    if os.path.splitext(mask_path)[1].lower() == ".npy":
+        mask = np.load(mask_path)
+        if mask.ndim == 3:
+            mask = cv2.cvtColor(mask, cv2.COLOR_RGB2GRAY)
+    elif os.path.splitext(mask_path)[1].lower() == ".npz":
+        mask = np.load(mask_path)["mask"]
+        if mask.ndim == 3:
+            mask = cv2.cvtColor(mask, cv2.COLOR_RGB2GRAY)
+    else:
+        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+
+    if mask is None:
+        raise ValueError(f"Could not read the mask file: {mask_path}")
+
+    # 0 and 1 should be safe for direct comparison
+    if mode == "black_on_white":
+        mask = mask == 0
+    elif mode == "white_on_black":
+        mask = mask == 1
+
+    return mask
+
+
+def save_mask(mask, mask_path, mode="black_on_white"):
+    """Save the mask to a file.
+
+    Args:
+        mask (np.ndarray): The binary mask to save.
+        mask_path (str): Path where the mask will be saved.
+        mode (str): Color mode of the mask. Options are:
+            - "black_on_white": Black regions will be anonymized.
+            - "white_on_black": White regions will be anonymized.
+
+    Returns:
+        None
+    """
+    if mode == "black_on_white":
+        mask = mask == 0
+
+    if os.path.splitext(mask_path)[1].lower() == ".npy":
+        np.save(mask_path, mask)
+    elif os.path.splitext(mask_path)[1].lower() == ".npz":
+        np.savez(mask_path, mask=mask)
+    else:
+        cv2.imwrite(mask_path, (mask * 255).astype(np.uint8), [cv2.IMWRITE_JPEG_QUALITY, 100])
