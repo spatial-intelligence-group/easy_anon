@@ -70,7 +70,7 @@ markupsafe==3.0.2
     # via
     #   jinja2
     #   werkzeug
-mask2former @ git+https://github.com/v-pnk/Mask2Former.git@5165b992dc50d2b3286c8975e995d868f8cfedf1
+mask2former @ git+https://github.com/v-pnk/Mask2Former.git@883bd9c41b06fe4509bb2e933ecce8c3d2c37519
     # via -r requirements.in
 matplotlib==3.10.3
     # via detectron2
@@ -186,6 +186,10 @@ pyyaml==6.0.2
 requests==2.32.3
     # via huggingface-hub
 rich==14.0.0
+    # via
+    #   -r requirements.in
+    #   rich-argparse
+rich-argparse==1.7.1
     # via -r requirements.in
 safetensors==0.5.2
     # via timm

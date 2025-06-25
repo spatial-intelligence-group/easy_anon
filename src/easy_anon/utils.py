@@ -144,6 +144,9 @@ def save_mask(mask, mask_path, mode="black_on_white"):
 def get_rich_theme():
     """Get a Rich theme with a custom CLI style.
 
+    Args:
+        None
+
     Returns:
         rich.theme.Theme: A Rich Theme object with custom CLI style.
     """
@@ -153,15 +156,39 @@ def get_rich_theme():
             "bar.complete": "#0065BD",
             "bar.finished": "#6AADE4",
             "bar.pulse": "#F0AB00",
-            "log.message": "#FFFFFF",
+            "log.message": "default",
             "warning": "#F0AB00",
         },
         inherit=False,
     )
 
 
+def get_rich_argparse_style():
+    """Get a Rich style for rich-argparse formatter.
+
+    Args:
+        None
+
+    Returns:
+        dict: A dictionary with Rich style settings for rich-argparse.
+    """
+    return {
+        "argparse.args": "#0065BD",
+        "argparse.groups": "#F0AB00",
+        "argparse.help": "default",
+        "argparse.metavar": "#9B9B9B",
+        "argparse.prog": "#9B9B9B",
+        "argparse.syntax": "bold",
+        "argparse.text": "default",
+        "argparse.default": "#6AADE4 italic",
+    }
+
+
 def get_rich_console():
     """Create a Rich Console for logging and output.
+
+    Args:
+        None
 
     Returns:
         rich.console.Console: A Rich Console object with custom theme and settings.
@@ -176,6 +203,9 @@ def get_rich_console():
 
 def get_rich_progress_processing():
     """Create a progress bar for processing tasks.
+
+    Args:
+        None
 
     Returns:
         rich.progress.Progress: A Rich Progress object configured for processing tasks.
@@ -192,6 +222,9 @@ def get_rich_progress_processing():
 
 def get_rich_progress_download():
     """Create a progress bar for downloading tasks.
+
+    Args:
+        None
 
     Returns:
         rich.progress.Progress: A Rich Progress object configured for download tasks.
@@ -216,6 +249,9 @@ def download_checkpoint(url: str, dest: str):
     Args:
         url (str): The URL to download the checkpoint from.
         dest (str): The destination path where the checkpoint will be saved.
+
+    Returns:
+        None
     """
     os.makedirs(os.path.dirname(dest), exist_ok=True)
 

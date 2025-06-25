@@ -15,6 +15,7 @@ dependencies = [
     "opencv-python",
     "PyYAML",
     "rich",
+    "rich-argparse",
     "torch>=2.0.0",
 ]
 

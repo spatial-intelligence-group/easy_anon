@@ -4,6 +4,7 @@
 """Anonymize the given images using pre-generated masks."""
 
 import argparse
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 import os
 import numpy as np
 import cv2
@@ -16,14 +17,16 @@ from easy_anon.utils import (
     MASK_EXTS,
     get_rich_console,
     get_rich_progress_processing,
+    get_rich_argparse_style,
 )
 
 
 def main():
     """Anonymize the given images using pre-generated masks."""
+    ArgumentDefaultsRichHelpFormatter.styles = get_rich_argparse_style()
     parser = argparse.ArgumentParser(
-        description="Masking / anonymization using Mask2Former",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="Anonymization using pre-generated masks.",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "input_image",

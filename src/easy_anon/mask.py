@@ -10,6 +10,7 @@ Copyright (c) 2022 Meta, Inc.
 """
 
 import argparse
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 import os
 import importlib.resources
 import numpy as np
@@ -43,14 +44,16 @@ from easy_anon.utils import (
     download_checkpoint,
     get_rich_console,
     get_rich_progress_processing,
+    get_rich_argparse_style,
 )
 
 
 def main():
     """Generate binary masks for the given images and selected labels using Mask2Former."""
+    ArgumentDefaultsRichHelpFormatter.styles = get_rich_argparse_style()
     parser = argparse.ArgumentParser(
-        description="Masking / anonymization using Mask2Former",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="Generating binary masks with Mask2Former.",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "input_image",
