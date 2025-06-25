@@ -7,10 +7,16 @@ import argparse
 import os
 import numpy as np
 import cv2
-from rich.progress import track
-from rich.console import Console
 
-from easy_anon.utils import check_img_ext, check_mask_ext, load_mask, IMG_EXTS, MASK_EXTS
+from easy_anon.utils import (
+    check_img_ext,
+    check_mask_ext,
+    load_mask,
+    IMG_EXTS,
+    MASK_EXTS,
+    get_rich_console,
+    get_rich_progress_processing,
+)
 
 
 def main():
@@ -40,15 +46,15 @@ def main():
         "--infill_mode",
         type=str,
         default="average_border",
-        choices=["average_inside", "average_border", "single_color", "blur_box", "blur_gauss", "inpaint"],
+        choices=["average_inside", "average_border", "single_color", "inpaint", "blur_box", "blur_gauss"],
         help="The infill mode to use for anonymization. "
         "Options are:"
         "'average_inside': Fill with the average color of each enclosed masked region. "
         "'average_border': Fill with the average color of the border just outside the masked region. "
         "'single_color': Fill with a single color (can be specified with '--single_color'). "
+        "'inpaint': Fill with inpainting. "
         "'blur_box': Fill with a blurred version of the masked region using box blur. "
-        "'blur_gauss': Fill with a blurred version of the masked region using Gaussian blur. "
-        "'inpaint': Fill with inpainting.",
+        "'blur_gauss': Fill with a blurred version of the masked region using Gaussian blur.",
     )
     parser.add_argument(
         "--mask_color_mode",
@@ -96,7 +102,7 @@ def main():
         help="Delete the binary masks after anonymization",
     )
     args = parser.parse_args()
-    console = Console()
+    console = get_rich_console()
 
     assert len(args.single_color) in [3, 4], "The single_color argument must contain 3 or 4 values (RGB or RGBA)."
 
@@ -201,17 +207,18 @@ def main():
             console.print(
                 "Warning :warning: : The following input images do not have corresponding masks: \n- "
                 + "\n- ".join(unpaired_images),
-                style="yellow",
+                style="warning",
             )
         if unpaired_masks:
             console.print(
                 "Warning :warning: : The following input masks do not have corresponding images: \n- "
                 + "\n- ".join(unpaired_masks),
-                style="yellow",
+                style="warning",
             )
 
-    console.print(f"Found {len(input_image_list)} image-mask pairs for anonymization")
-    for idx in track(range(len(input_image_list)), description="Anonymizing..."):
+    progress = get_rich_progress_processing()
+    progress.start()
+    for idx in progress.track(range(len(input_image_list)), description="Anonymizing"):
         img_path = input_image_list[idx]
         mask_path = input_mask_list[idx]
         output_path = output_list[idx]
@@ -239,6 +246,7 @@ def main():
         # Save the anonymized image
         img_anon = cv2.cvtColor(img_anon, cv2.COLOR_RGB2BGR)
         cv2.imwrite(output_path, img_anon)
+    progress.stop()
 
 
 def anonymize_image(img, mask, mode="average_border", single_color=[0, 0, 0], size_param=None):

@@ -1,0 +1,7 @@
+appdirs
+mask2former@git+https://github.com/v-pnk/Mask2Former.git@package
+numpy
+opencv-python
+PyYAML
+rich
+torch>=2.0.0

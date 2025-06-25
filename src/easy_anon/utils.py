@@ -6,6 +6,19 @@ from appdirs import user_cache_dir
 import yaml
 import numpy as np
 import cv2
+from urllib.request import urlopen
+from functools import partial
+from rich.console import Console
+from rich.theme import Theme
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    Progress,
+    TextColumn,
+    MofNCompleteColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
 
 try:
     from yaml import CLoader as Loader
@@ -126,3 +139,95 @@ def save_mask(mask, mask_path, mode="black_on_white"):
         np.savez(mask_path, mask=mask)
     else:
         cv2.imwrite(mask_path, (mask * 255).astype(np.uint8), [cv2.IMWRITE_JPEG_QUALITY, 100])
+
+
+def get_rich_theme():
+    """Get a Rich theme with a custom CLI style.
+
+    Returns:
+        rich.theme.Theme: A Rich Theme object with custom CLI style.
+    """
+    return Theme(
+        styles={
+            "bar.back": "#9B9B9B",
+            "bar.complete": "#0065BD",
+            "bar.finished": "#6AADE4",
+            "bar.pulse": "#F0AB00",
+            "log.message": "#FFFFFF",
+            "warning": "#F0AB00",
+        },
+        inherit=False,
+    )
+
+
+def get_rich_console():
+    """Create a Rich Console for logging and output.
+
+    Returns:
+        rich.console.Console: A Rich Console object with custom theme and settings.
+    """
+    return Console(
+        theme=get_rich_theme(),
+        width=None,  # Use terminal width
+        log_time=False,  # Disable automatic timestamps
+        log_path=False,  # Disable automatic log path
+    )
+
+
+def get_rich_progress_processing():
+    """Create a progress bar for processing tasks.
+
+    Returns:
+        rich.progress.Progress: A Rich Progress object configured for processing tasks.
+    """
+    return Progress(
+        TextColumn("[progress.description]{task.description}", justify="right"),
+        BarColumn(bar_width=None),
+        MofNCompleteColumn(),
+        "•",
+        TimeRemainingColumn(),
+        console=get_rich_console(),
+    )
+
+
+def get_rich_progress_download():
+    """Create a progress bar for downloading tasks.
+
+    Returns:
+        rich.progress.Progress: A Rich Progress object configured for download tasks.
+    """
+    return Progress(
+        TextColumn("Downloading {task.fields[file_name]}", justify="right"),
+        BarColumn(bar_width=None),
+        "[progress.percentage]{task.percentage:>3.1f}%",
+        "•",
+        DownloadColumn(),
+        "•",
+        TransferSpeedColumn(),
+        "•",
+        TimeRemainingColumn(),
+        console=get_rich_console(),
+    )
+
+
+def download_checkpoint(url: str, dest: str):
+    """Download a model checkpoint from the given URL to the specified destination.
+
+    Args:
+        url (str): The URL to download the checkpoint from.
+        dest (str): The destination path where the checkpoint will be saved.
+    """
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+
+    progress = get_rich_progress_download()
+    with progress:
+        name = url.split("/")[-1]
+        task = progress.add_task("download", file_name=name, start=False)
+        response = urlopen(url)
+        progress.update(task, total=int(response.info()["Content-length"]))
+        with open(dest, "wb") as dest_file:
+            progress.start_task(task)
+            for data in iter(partial(response.read, 32768), b""):
+                dest_file.write(data)
+                progress.update(task, advance=len(data))
+        progress.console.log(f"Downloaded {dest}")

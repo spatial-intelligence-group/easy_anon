@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 
 
-"""Generate masks for the given images using Mask2Former."""
+"""Generate masks for the given images using Mask2Former.
+
+This file includes code derived from the Mask2Former demo by Meta, Inc.
+https://github.com/facebookresearch/Mask2Former
+Licensed under the MIT License.
+Copyright (c) 2022 Meta, Inc.
+"""
 
 import argparse
 import os
 import importlib.resources
 import numpy as np
-from rich.progress import track
-from rich.console import Console
+import cv2
 import yaml
 
 try:
@@ -35,6 +40,9 @@ from easy_anon.utils import (
     check_img_ext,
     load_mask,
     save_mask,
+    download_checkpoint,
+    get_rich_console,
+    get_rich_progress_processing,
 )
 
 
@@ -85,6 +93,12 @@ def main():
         "If 'white_on_black', the mask will be white on a black background.",
     )
     parser.add_argument(
+        "--dilation_radius",
+        type=int,
+        default=0,
+        help="Radius of the dilation applied to the generated masks (inlfates the mask a bit).",
+    )
+    parser.add_argument(
         "--mask_postfix",
         type=str,
         default=".png",
@@ -117,7 +131,8 @@ def main():
         help="Path of the directory where the checkpoint files are cached",
     )
     args = parser.parse_args()
-    console = Console()
+
+    console = get_rich_console()
 
     img_is_file = os.path.isfile(args.input_image)
     img_is_dir = os.path.isdir(args.input_image)
@@ -187,24 +202,26 @@ def main():
                 console.print(
                     f"Warning :warning: : The model '{model}' does not support the label category '{label_category}'."
                     f"Check the available label categories in {labels_path}.",
-                    style="yellow",
+                    style="warning",
                 )
             else:
                 labels.extend(label_category_ids)
 
-        for idx in track(range(len(input_image_list)), description=f"Generating masks with {model}..."):
+        progress = get_rich_progress_processing()
+        progress.start()
+        for idx in progress.track(range(len(input_image_list)), description=f"Generating masks with {model}"):
             input_image_path = input_image_list[idx]
             merged_mask_path = output_mask_list[idx]
             img = read_image(input_image_path, format="BGR")
             predictions = predictor(img)
-            mask_img = create_mask(predictions, labels)
+            mask_img = create_mask(predictions, labels, dilation_radius=args.dilation_radius)
 
             os.makedirs(os.path.dirname(args.output), exist_ok=True)
 
             if init_warn and os.path.splitext(merged_mask_path)[1].lower() in [".jpg", ".jpeg"]:
-                console.print(
-                    "\nWarning :warning: : Masks are being saved in JPEG format, which may cause compression artifacts. ",
-                    style="yellow",
+                progress.console.print(
+                    "Warning :warning: : Masks are being saved in JPEG format, which may cause compression artifacts. ",
+                    style="warning",
                 )
                 init_warn = False
 
@@ -231,6 +248,7 @@ def main():
             else:
                 merged_mask = mask_img
             save_mask(merged_mask, merged_mask_path, mode=args.mask_color_mode)
+        progress.stop()
 
         init_run = False
 
@@ -307,12 +325,13 @@ def setup_cfg(input_config):
     return cfg
 
 
-def create_mask(predictions, labels):
+def create_mask(predictions, labels, dilation_radius=0):
     """Create a binary mask image from the raw Mask2Former predictions.
 
     Args:
         predictions (dict): The raw predictions from the Mask2Former model, containing semantic segmentation results.
         labels (list): A list of label IDs to include in the mask.
+        dilation_radius (int): Dilation radius to inflate the mask. Default is 0 (no dilation).
 
     Returns:
         np.ndarray: A binary mask array.
@@ -321,20 +340,12 @@ def create_mask(predictions, labels):
 
     segmentation = predictions["sem_seg"].argmax(dim=0).to("cpu").numpy()
     mask_bool = np.isin(segmentation, labels).reshape(segmentation.shape)
+
+    if dilation_radius > 0:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilation_radius * 2 + 1, dilation_radius * 2 + 1))
+        mask_bool = cv2.dilate(mask_bool.astype(np.uint8) * 255, kernel, iterations=1).astype(bool)
+
     return mask_bool
-
-
-def download_checkpoint(url: str, dest: str):
-    """Download a model checkpoint from the given URL to the specified destination.
-
-    Args:
-        url (str): The URL to download the checkpoint from.
-        dest (str): The destination path where the checkpoint will be saved.
-    """
-    import subprocess
-
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
-    subprocess.run(["wget", url, "-O", str(dest)], check=True)
 
 
 if __name__ == "__main__":
