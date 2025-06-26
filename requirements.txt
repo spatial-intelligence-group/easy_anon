@@ -70,7 +70,7 @@ markupsafe==3.0.2
     # via
     #   jinja2
     #   werkzeug
-mask2former @ git+https://github.com/v-pnk/Mask2Former.git@883bd9c41b06fe4509bb2e933ecce8c3d2c37519
+mask2former @ git+https://github.com/spatial-intelligence-group/mask2former_package.git@0b4101bcafce113eca9ada73b768bbfadbcff0b6
     # via -r requirements.in
 matplotlib==3.10.3
     # via detectron2

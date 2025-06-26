@@ -1,5 +1,5 @@
 appdirs
-mask2former@git+https://github.com/v-pnk/Mask2Former.git@package
+mask2former@git+https://github.com/spatial-intelligence-group/mask2former_package.git
 numpy
 opencv-python
 PyYAML

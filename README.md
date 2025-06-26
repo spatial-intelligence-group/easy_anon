@@ -22,7 +22,7 @@ pip install -r requirements.txt
 pip install git+https://github.com/spatial-intelligence-group/easy_anon.git --no-build-isolation --no-deps
 ```
 
-- :green_heart: Mask2Former is installed automatically as a dependency.
+- :green_heart: Mask2Former is installed automatically as a [dependency](https://github.com/spatial-intelligence-group/mask2former_package).
 - :warning: Mask2Former needs CUDA installed on the system.
     - If your installation of the CUDA toolkit is not in `/usr/local/cuda`, you need to set the environment variable `CUDA_HOME` before installing Mask2Former.
 - :bulb: We recommend using [uv](https://docs.astral.sh/uv/) and replacing the `pip` calls with `uv pip`. It's much faster!
@@ -136,4 +136,4 @@ This project uses:
 - [Mask2Former](https://github.com/facebookresearch/Mask2Former) for semantic segmentation
 - [OpenCV](https://opencv.org/) for image processing
 - [Rich](https://github.com/Textualize/rich) for CLI
-- and otters
+- and [otters](requirements.txt)
