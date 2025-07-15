@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 from urllib.request import urlopen
 from functools import partial
+import uuid
 from rich.console import Console
 from rich.theme import Theme
 from rich.progress import (
@@ -267,3 +268,15 @@ def download_checkpoint(url: str, dest: str):
                 dest_file.write(data)
                 progress.update(task, advance=len(data))
         progress.console.log(f"Downloaded {dest}")
+
+
+def get_unique_string():
+    """Generate a random unique string.
+
+    Args:
+        None
+
+    Returns:
+        str: A random unique string
+    """
+    return str(uuid.uuid4()).replace("-", "")

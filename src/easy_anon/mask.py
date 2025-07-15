@@ -16,6 +16,7 @@ import importlib.resources
 import numpy as np
 import cv2
 import yaml
+import tempfile
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -45,6 +46,7 @@ from easy_anon.utils import (
     get_rich_console,
     get_rich_progress_processing,
     get_rich_argparse_style,
+    get_unique_string,
 )
 
 
@@ -256,7 +258,7 @@ def main():
         init_run = False
 
 
-def create_tmp_config(config_path, checkpoint_path=None, recursion_depth=0):
+def create_tmp_config(config_path, checkpoint_path=None):
     """Create a temporary file based on a config file from Mask2Former.
 
     The Mask2Former configs are installed within the mask2former package. Copy the config file to a temporary location
@@ -266,7 +268,6 @@ def create_tmp_config(config_path, checkpoint_path=None, recursion_depth=0):
         config_path (str): The path to the config file relative to the config directory in Mask2Former package.
         checkpoint_path (str, optional): Path to the model checkpoint file. If provided, it will replace the "WEIGHTS"
         key in the config.
-        recursion_depth (int): Used for recursive base config resolution.
 
     Returns:
         list: A list of paths to the temporary config files created, including the base configs if any. The top-level
@@ -278,13 +279,14 @@ def create_tmp_config(config_path, checkpoint_path=None, recursion_depth=0):
         # Not using safe load due to math functions (python/object/apply:eval) in the config files
         yaml_data = yaml.load(f, Loader=Loader)
 
-    tmp_yaml_path = os.path.join(os.path.dirname(__file__), f"tmp_config_{recursion_depth}.yaml")
+    # Create a temporary file (with a random name) to store the config
+    tmp_yaml_path = os.path.join(tempfile.gettempdir(), f"tmp_config_{get_unique_string()}.yaml")
 
     if "_BASE_" in yaml_data:
         base_config_relpath = yaml_data["_BASE_"]
         base_config_path = os.path.join(os.path.dirname(config_path), base_config_relpath)
-        tmp_yaml_path_list = create_tmp_config(base_config_path, recursion_depth=recursion_depth + 1)
-        yaml_data["_BASE_"] = tmp_yaml_path_list[-1]
+        tmp_yaml_path_list = create_tmp_config(base_config_path)
+        yaml_data["_BASE_"] = tmp_yaml_path_list[-1]  # The config files link to each other via the _BASE_ key
     else:
         tmp_yaml_path_list = []
 
