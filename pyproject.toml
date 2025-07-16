@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "editables"]
 build-backend = "hatchling.build"
 
 [project]
@@ -18,6 +18,9 @@ dependencies = [
     "rich-argparse",
     "torch>=2.0.0",
 ]
+[project.scripts]
+easy-mask = "easy_anon.mask:main"
+easy-anon = "easy_anon.anon:main"
 
 [dependency-groups]
 dev = [

@@ -36,8 +36,8 @@ The tool does two separate things:
 
 The most basic way to run the two is:
 ```bash
-python -m easy_anon.mask <input_image_dir> <mask_dir>
-python -m easy_anon.anon <input_image_dir> <mask_dir> <anonymized_image_dir>
+easy-mask <input_image_dir> <mask_dir>
+easy-anon <input_image_dir> <mask_dir> <anonymized_image_dir>
 ```
 
 
@@ -54,7 +54,7 @@ Mask2Former models used for the segmentation can be specified using the `--model
 
 Use help to get all the available options:
 ``` bash
-python -m easy_anon.mask --help
+easy-mask --help
 ```
 
 
@@ -75,7 +75,7 @@ The color for the `single_color` infill mode can be specified using the `--singl
 
 Use help to get all the available options:
 ``` bash
-python -m easy_anon.anon --help
+easy-anon --help
 ```
 
 

@@ -1,4 +1,5 @@
 appdirs
+editables
 mask2former@git+https://github.com/spatial-intelligence-group/mask2former_package.git
 numpy
 opencv-python
