@@ -300,10 +300,16 @@ def anonymize_average_inside(img, mask):
     Returns:
         np.ndarray: The anonymized image with the average color filled in the masked regions.
     """
-    contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    for contour in contours:
+    contours, hierarchy = cv2.findContours(mask.astype(np.uint8), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+
+    for ci, (c, h) in enumerate(zip(contours, hierarchy[0])):
+        if h[3] >= 0:
+            # Skip holes - those are drawn together with their parent contour
+            continue
+
         contour_mask = np.zeros_like(mask, dtype=np.uint8)
-        cv2.drawContours(contour_mask, [contour], -1, 255, thickness=cv2.FILLED)
+        cv2.drawContours(contour_mask, contours, ci, 255, thickness=cv2.FILLED, hierarchy=hierarchy, maxLevel=1)
+
         avg_color = cv2.mean(img, mask=contour_mask)[:3]
         img[contour_mask.astype(bool)] = avg_color
 
@@ -320,12 +326,18 @@ def anonymize_average_border(img, mask):
     Returns:
         np.ndarray: The anonymized image with the average color of the border filled in the masked regions.
     """
-    contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    for contour in contours:
+    contours, hierarchy = cv2.findContours(mask.astype(np.uint8), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+
+    for ci, (c, h) in enumerate(zip(contours, hierarchy[0])):
+        if h[3] >= 0:
+            # Skip holes - those are drawn together with their parent contour
+            continue
+
         contour_mask = np.zeros_like(mask, dtype=np.uint8)
-        cv2.drawContours(contour_mask, [contour], -1, 255, thickness=cv2.FILLED)
+        cv2.drawContours(contour_mask, contours, ci, 255, thickness=cv2.FILLED, hierarchy=hierarchy, maxLevel=1)
         contour_mask_dilated = cv2.dilate(contour_mask, np.ones((3, 3), np.uint8), iterations=1)
         contour_mask_border = cv2.bitwise_and(contour_mask_dilated, cv2.bitwise_not(contour_mask))
+
         avg_color = cv2.mean(img, mask=contour_mask_border)[:3]
         img[contour_mask.astype(bool)] = avg_color
 

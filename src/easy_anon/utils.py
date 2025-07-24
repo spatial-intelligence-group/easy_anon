@@ -83,7 +83,7 @@ def check_mask_ext(filename):
     return os.path.splitext(filename)[1].lower() in MASK_EXTS
 
 
-def load_mask(mask_path, mode="black_on_white"):
+def load_mask(mask_path, mode="black_on_white", decision_threshold=0.5):
     """Load the mask and convert it to the desired color mode.
 
     Args:
@@ -91,6 +91,7 @@ def load_mask(mask_path, mode="black_on_white"):
         mode (str): Color mode of the mask. Options are:
             - "black_on_white": Black regions will be anonymized.
             - "white_on_black": White regions will be anonymized.
+        decision_threshold (float): Binarization threshold for masks stored as images. Default is 0.5.
 
     Returns:
         np.ndarray: The binary mask where the regions to be anonymized are set to True.
@@ -105,11 +106,12 @@ def load_mask(mask_path, mode="black_on_white"):
             mask = cv2.cvtColor(mask, cv2.COLOR_RGB2GRAY)
     else:
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+        mask = mask / 255.0
+        mask = mask > decision_threshold
 
     if mask is None:
         raise ValueError(f"Could not read the mask file: {mask_path}")
 
-    # 0 and 1 should be safe for direct comparison
     if mode == "black_on_white":
         mask = mask == 0
     elif mode == "white_on_black":
